@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from config import DBCommands
 from checkDB import get_all_cars
 from utils import getPriceFromDB, normalizeString
@@ -15,7 +15,7 @@ def fetch_data(command):
 
 import seaborn as sns
 
-def prepare_data(data, status, region_of_interest):
+def prepare_data(data, status, region_of_interest, group_by_month):
     """
     Подготавливает данные, преобразуя даты и цены в формат, подходящий для анализа.
     """
@@ -31,9 +31,17 @@ def prepare_data(data, status, region_of_interest):
         if price == None:
             continue
 
+        date = datetime.strptime(date_str.split()[0], '%Y-%m-%d')
+        # Проверяем, если дата обновления меньше, чем текущая дата минус 3 дня,
+        # то пропускаем эту запись
+        if date > datetime.now() - timedelta(days=3):
+            continue
+
         if price < 1000:
             continue
-        date = datetime.strptime(date_str.split()[0], '%Y-%m-%d')
+
+        if group_by_month:
+            date = date.replace(day=1)
 
         dates.append(date)
         prices.append(price)
@@ -42,7 +50,7 @@ def prepare_data(data, status, region_of_interest):
     return df
 
 
-def main(region_of_interest):
+def main(region_of_interest, group_by_month):
     """
     Основная функция для выполнения всех операций.
     """
@@ -51,12 +59,12 @@ def main(region_of_interest):
     # Для автомобилей в продаже
     command = DBCommands.select_in_cars
     data = fetch_data(command)
-    df_in_cars = prepare_data(data, 'В продаже', region_of_interest)
+    df_in_cars = prepare_data(data, 'В продаже', region_of_interest, group_by_month)
 
     # Для проданных автомобилей
     command = DBCommands.select_in_sold_cars
     data = fetch_data(command)
-    df_in_sold_cars = prepare_data(data, 'Продано', region_of_interest)
+    df_in_sold_cars = prepare_data(data, 'Продано', region_of_interest, group_by_month)
 
     # Объединяем данные
     df = pd.concat([df_in_cars, df_in_sold_cars])

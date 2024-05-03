@@ -213,6 +213,33 @@ def print_potentially_sold_cars(DB_NAME):
 
     conn.close()
 
+def filter_selling_cars_from_sold_cars(DB_NAME):
+    """Удаляет проданные автомобили из таблицы sold_cars, которые есть в таблице cars."""
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+
+    try:
+        # Выбираем проданные автомобили из таблицы sold_cars
+        c.execute(f"SELECT url FROM {DBTableName.sold_cars_table_name}")
+        sold_cars_urls = [row[0] for row in c.fetchall()]
+
+        not_sold_cars = 0
+        # Проверяем наличие этих машин в таблице cars и удаляем их из sold_cars
+        for url in sold_cars_urls:
+            c.execute(f"SELECT url FROM {DBTableName.cars_table_name} WHERE url = ?", (url,))
+            result = c.fetchone()
+            if result:
+                not_sold_cars += 1
+                c.execute(f"DELETE FROM {DBTableName.sold_cars_table_name} WHERE url = ?", (url,))
+
+        print(f"Удалено не проданных автомобилей из таблицы sold_cars: {not_sold_cars}")
+    except Exception as e:
+        print("Произошла ошибка при удалении проданных автомобилей из таблицы sold_cars:", e)
+
+    # Фиксируем изменения и закрываем соединение
+    conn.commit()
+    conn.close()
+
 def save_sold_cars_to_separate_table(DB_NAME):
     """Перемещает потенциально проданные автомобили в отдельную таблицу с предварительной очисткой."""
     conn = sqlite3.connect(DB_NAME)
@@ -225,20 +252,43 @@ def save_sold_cars_to_separate_table(DB_NAME):
     c.execute(f"{DBCommands.select_in_cars} WHERE session_updated = 0")
     sold_cars = c.fetchall()
 
+    session = requests.Session()
+    car_i = 0
+    actually_sold_cars = []
+    while car_i < len(sold_cars):
+        if car_i % 500 == 0:
+            print(car_i, len(sold_cars))
+
+        car = sold_cars[car_i]
+        try:
+            car_details = parse_car_page(car[0], session, WEB_HEADERS)
+        except Exception as e:
+            print(e)
+            continue
+        car_i += 1
+
+        if(len(list(car_details)) == 0):
+            actually_sold_cars.append(car)
+
     # Перемещаем эти автомобили в таблицу sold_cars
-    for car in sold_cars:
+    for car in actually_sold_cars:
         url, city, price, details, _ = car
         try:
             c.execute(DBCommands.insert_in_sold_cars, (url, city, price, details))
         except sqlite3.IntegrityError as e:
             print(f"Пропущена запись для URL {url} из-за ошибки целостности: {e}")
-    print(f"Таблица проданных автомобилей обновлена. Новых записей: {len(sold_cars)}")
+            # Получаем содержимое конфликтующей строки
+            conflicting_row = c.execute("SELECT * FROM sold_cars WHERE url = ?", (url,)).fetchone()
+            print("Содержимое конфликтующей строки (уже в базе):", conflicting_row)
+            print("Содержимое конфликтующей строки (пытаемся добавить):", car)
+
+    print(f"Таблица проданных автомобилей обновлена. Новых записей: {len(actually_sold_cars)}")
 
     # Удаляем потенциально проданные автомобили из основной таблицы
-    c.execute(f"{DBCommands.delete_from_cars} WHERE session_updated = 0")
-    deleted_count = c.rowcount  # Количество удаленных записей
-    print(f"Удалено потенциально проданных автомобилей: {deleted_count}")
+    for car in actually_sold_cars:
+        c.execute(f"DELETE FROM {DBTableName.cars_table_name} WHERE url = ?", (car[0],))
 
+    print(f"Удалено потенциально проданных автомобилей: {actually_sold_cars}")
 
     # Фиксируем изменения и закрываем соединение
     conn.commit()
@@ -248,6 +298,7 @@ if __name__ == "__main__":
     params = get_params(TEST_BRAND)
 
     DB_NAME, _ = parse_data(params=params)
+    #DB_NAME = "master_database.db"
 
     print_potentially_sold_cars(DB_NAME)
     save_sold_cars_to_separate_table(DB_NAME)

@@ -1,4 +1,5 @@
 import telebot
+from datetime import datetime, timedelta
 
 from config import (
     get_cities,
@@ -13,12 +14,11 @@ from utils import getPriceFromDB, filterGarbageFromDigital
 
 bot = telebot.TeleBot(BOT_TOKEN)
 MAIN_PIPLINE = ""
+private_group_chat_id = -4225797843
 
-
-@bot.message_handler(commands=[Commands.start])
+@bot.message_handler(commands=[Commands.start], func=lambda message: message.chat.id == private_group_chat_id)
 def send_welcome(message):
     bot.reply_to(message, Messages.hi_message)
-
 
 num_rows = 5
 def get_brands_keyboard(prefix):
@@ -37,18 +37,17 @@ def get_city_keyboard(prefix):
         buttons = buttons[num_rows:]
     return keyboard
 
+def get_confirm_keyboard():
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    buttons = [InlineKeyboardButton("Yes", callback_data="Confirm:Yes"),
+               InlineKeyboardButton("No", callback_data="Confirm:No")]
 
-@bot.message_handler(commands=[Commands.fetch])
-def fetch_data(message):
-    keyboard = get_brands_keyboard(f'Init:{Commands.fetch}')
-    bot.send_message(message.chat.id, Messages.enter_brand, reply_markup=keyboard)
+    while buttons:
+        keyboard.row(*buttons[:2])
+        buttons = buttons[2:]
+    return keyboard
 
-@bot.message_handler(commands=[Commands.get_data])
-def get_cars(message):
-    keyboard = get_brands_keyboard(f'Init:{Commands.get_data}')
-    bot.send_message(message.chat.id, Messages.enter_brand, reply_markup=keyboard)
-
-@bot.message_handler(commands=[Commands.get_general_info_graph])
+@bot.message_handler(commands=[Commands.get_general_info_graph], func=lambda message: message.chat.id == private_group_chat_id)
 def get_general_info_graph(message):
     global MAIN_PIPLINE
 
@@ -60,7 +59,7 @@ def get_general_info_graph(message):
     keyboard.add(InlineKeyboardButton("All", callback_data=Commands.get_general_info_graph + ":All"))
     bot.send_message(message.chat.id, Messages.enter_brand, reply_markup=keyboard)
 
-@bot.message_handler(commands=[Commands.get_popular_models])
+@bot.message_handler(commands=[Commands.get_popular_models], func=lambda message: message.chat.id == private_group_chat_id)
 def get_popular_models(message):
     result = visualizePopularCars.main()
 
@@ -68,31 +67,20 @@ def get_popular_models(message):
     for car in result:
         bot.send_message(message.chat.id, str(car))
 
-@bot.message_handler(commands=[Commands.get_price_range_models])
+@bot.message_handler(commands=[Commands.get_price_range_models], func=lambda message: message.chat.id == private_group_chat_id)
 def get_price_range_models(message):
     global MAIN_PIPLINE
 
     MAIN_PIPLINE = \
-        f'Init/{Commands.ask_brand}/{Commands.get_price_range_models}'
+        f'Init/{Commands.ask_brand}/{Commands.ask_group_by_month}/{Commands.get_price_range_models}'
 
     keyboard = get_brands_keyboard(Commands.get_price_range_models)
-
-    keyboard.add(InlineKeyboardButton("All", callback_data=Commands.get_price_range_models + ":All"))
     bot.send_message(message.chat.id, Messages.enter_brand, reply_markup=keyboard)
-
-
-@bot.message_handler(commands=[Commands.get_sold_cars])
-def get_sold_cars_data(message):
-    keyboard = get_brands_keyboard(f'Init:{Commands.get_sold_cars}')
-    bot.send_message(message.chat.id, Messages.enter_brand, reply_markup=keyboard)
-
-
 
 ########################################################################################################################
 
 from config import (
     get_car_brands,
-    get_params,
     BRAND_SPLIT_CHAR,
     PRICE_SPLIT_CHAR,
     Messages,
@@ -101,7 +89,6 @@ from config import (
 
 from telebot.types import InlineKeyboardButton
 from checkDB import get_all_cars
-from main import parse_data
 
 from config import DBCommands
 from vis import draw_general_data, filter_data, calculate_statistics, prepare_value_tables
@@ -128,6 +115,14 @@ def call_next_step_in_pipline(call):
             msg = bot.send_message(call.message.chat.id, Messages.enter_price)
 
         bot.register_next_step_handler(msg, callback_query)
+
+    elif MAIN_PIPLINE.startswith(f'{Commands.ask_group_by_month}'):
+        keyboard = get_confirm_keyboard()
+        try:
+            bot.send_message(call.chat.id, "Группировать данные по месяцам?", reply_markup=keyboard)
+        except:
+            bot.send_message(call.message.chat.id, "Группировать данные по месяцам?", reply_markup=keyboard)
+        return
 
     elif MAIN_PIPLINE.startswith(f'{Commands.get_general_info_graph}'):
         try:
@@ -192,6 +187,16 @@ def callback_query(call):
 
         call_next_step_in_pipline(call)
         return
+    elif MAIN_PIPLINE.startswith(f'{Commands.ask_group_by_month}'):
+        # Если был выбран бренд автомобиля
+        print("!", call.data)
+        result = call.data.split(BRAND_SPLIT_CHAR)[1]
+        params['Группировка'] = result == "Yes"
+
+        MAIN_PIPLINE = MAIN_PIPLINE[len(f'{Commands.ask_group_by_month}/'):]
+        call_next_step_in_pipline(call)
+
+        return
 
     if MAIN_PIPLINE.startswith(f'{Commands.get_general_info_graph}'):
         params["Режим"] = Commands.get_general_info_graph
@@ -199,7 +204,7 @@ def callback_query(call):
         return
 
     if MAIN_PIPLINE.startswith(f'{Commands.get_price_range_models}'):
-        visualizePriceRangePlot.main(params["Марка"][0])
+        visualizePriceRangePlot.main(params["Марка"][0], params['Группировка'])
 
         photo_path = f"{Commands.get_price_range_models}.jpg"
 
@@ -210,20 +215,18 @@ def callback_query(call):
                 bot.send_photo(call.chat.id, photo)
         return
 
-    #
-    # elif call.data.startswith(f'City'):
-    #     keyboard = get_city_keyboard(f'get_cities_from_user')
-    #     keyboard.add(
-    #         InlineKeyboardButton("All", callback_data=f'{Commands.get_general_info_graph}{BRAND_SPLIT_CHAR}All'))
-    #     bot.send_message(call.message.chat.id, Messages.enter_city, reply_markup=keyboard)
-    #     bot.register_next_step_handler(call.message, lambda call: get_cities_from_user(call, params))
-
-
-import re
-
 def add_to_raw_data(raw_data, cars, isCarModelNeeded):
     for data_i in cars:
         try:
+            # Получаем дату из поля "Дата"
+            date_str = data_i["Дата"]
+            date = datetime.strptime(date_str.split()[0], '%Y-%m-%d')
+
+            # Проверяем, если дата обновления меньше, чем текущая дата минус 3 дня,
+            # то пропускаем эту запись
+            if date > datetime.now() - timedelta(days=3):
+                continue
+
             price = getPriceFromDB(data_i["Цена"])
             if price == None:
                 continue
@@ -281,8 +284,6 @@ def send_photo(message, region_of_interest):
         raw_data['Модель'] = []
 
     num_stat_category = {"Цена": [], "Пробег": []}
-
-
 
     raw_cars_status = []
 

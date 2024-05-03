@@ -2,6 +2,11 @@ import sqlite3
 import json
 import re
 from config import DBCommands
+import requests
+from car_page_parser import parse_car_page
+from config import WEB_HEADERS
+from tqdm import tqdm
+import time
 
 def string_to_dict(input_string):
     # Удаление начальной части строки до фигурной скобки (если есть)
@@ -56,6 +61,46 @@ def get_all_cars(SELECT_COMMAND):
     return data
 
 if __name__ == "__main__":
-    SELECT_COMMAND = DBCommands.select_in_cars
+    SELECT_COMMAND = DBCommands.select_in_sold_cars
+    cars = get_all_cars(SELECT_COMMAND)
 
-    print(get_all_cars(SELECT_COMMAND))
+    DB_NAME = "master_database.db"
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+
+    session = requests.Session()
+    error = []
+    car_i = 0
+    with tqdm(total=len(cars)) as pbar:
+        while car_i < len(cars):
+            car = cars[car_i]
+            try:
+                car_details = parse_car_page(car["URL"], session, WEB_HEADERS)
+            except Exception as e:
+                print(e)
+                continue
+            car_i += 1
+
+
+            if(len(list(car_details)) != 0):
+                details_str = json.dumps(car['Детали'])
+                error.append([car["URL"], details_str])
+
+                # Вставка удаленной записи в таблицу cars
+                try:
+                    c.execute("INSERT INTO cars (url, city, price, details) VALUES (?, ?, ?, ?)",
+                          (car["URL"], car["Город"], car["Цена"], details_str))
+                except sqlite3.IntegrityError as e:
+                    print(f"Пропущена запись для URL {car['URL']} из-за ошибки целостности: {e}")
+
+                # Удаление записи из таблицы sold_cars
+                c.execute("DELETE FROM sold_cars WHERE url = ?", (car["URL"],))
+
+                # Если используется транзакция, не забудьте фиксировать изменения
+                conn.commit()
+            pbar.update(1)
+
+    print(len(error))
+    with open("errors.txt", "w") as f:
+        for url in error:
+            f.write(str(url) + "\n")

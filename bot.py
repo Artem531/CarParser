@@ -4,15 +4,18 @@ import threading
 
 from handlers import start_polling
 from main import (parse_data,
-                  save_sold_cars_to_separate_table)
+                  save_sold_cars_to_separate_table,
+                  filter_selling_cars_from_sold_cars)
 
-from config import get_car_brands, get_params
+from config import get_params
 
 def scheduled_fetch():
     print("Выполняю запланированную задачу...")
     params = get_params(brand="")
     DB_NAME, _ = parse_data(params)
+
     save_sold_cars_to_separate_table(DB_NAME)
+    filter_selling_cars_from_sold_cars(DB_NAME)
 
 
 # Настройка расписания

@@ -194,9 +194,7 @@ class DBTableName:
 
 class Commands:
     start: str = "start"
-    fetch: str = "fetch"
     get_data: str = "get_data"
-    get_sold_cars: str = "get_sold_cars"
     get_general_info_graph: str = "get_general_info_graph"
     get_popular_models: str = "get_popular_models"
     get_price_range_models: str = "get_price_range_models"
@@ -204,6 +202,7 @@ class Commands:
     ask_price: str = "ask_price"
     ask_city: str = "ask_city"
     ask_brand: str = "ask_brand"
+    ask_group_by_month: str = "ask_group_by_month"
 
 class DBCommands:
     data_headers: str = "url, city, price, details, insert_time"
