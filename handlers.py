@@ -14,11 +14,14 @@ from utils import getPriceFromDB, filterGarbageFromDigital
 
 bot = telebot.TeleBot(BOT_TOKEN)
 MAIN_PIPLINE = ""
-private_group_chat_id = -4225797843
+private_group_chat_id = -1002008465600
 
-@bot.message_handler(commands=[Commands.start], func=lambda message: message.chat.id == private_group_chat_id)
+@bot.message_handler(commands=[Commands.start])
 def send_welcome(message):
+    print(message.chat.id)
     bot.reply_to(message, Messages.hi_message)
+    bot.reply_to(message, Messages.hi_message1)
+    bot.reply_to(message, Messages.hi_message2)
 
 num_rows = 5
 def get_brands_keyboard(prefix):
@@ -157,6 +160,11 @@ def callback_query(call):
         prefix_value = call.data.split(BRAND_SPLIT_CHAR)
         brand = prefix_value[1]
 
+        try:
+            bot.send_message(call.chat.id, f"Выбрано: {brand}")
+        except:
+            bot.send_message(call.message.chat.id, f"Выбрано: {brand}")
+
         params['Марка'] = [brand]
         print(brand, params['Марка'])
 
@@ -171,15 +179,21 @@ def callback_query(call):
         params['Город'] = [city]
         print(city, params['Город'])
 
+        try:
+            bot.send_message(call.chat.id, f"Выбрано: {city}")
+        except:
+            bot.send_message(call.message.chat.id, f"Выбрано: {city}")
+
         MAIN_PIPLINE = MAIN_PIPLINE[len(f'{Commands.ask_city}/'):]
         call_next_step_in_pipline(call)
         return
 
     elif MAIN_PIPLINE.startswith(f'{Commands.ask_price}/'):
-        price = call.text.strip()
+        price = call.text.strip()[1:]
         price_from_to = price.split(PRICE_SPLIT_CHAR)
 
         if is_wrong_price(call.chat.id, price_from_to):
+            call_next_step_in_pipline(call)
             return
 
         MAIN_PIPLINE = MAIN_PIPLINE[len(f'{Commands.ask_price}/'):]

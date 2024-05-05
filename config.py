@@ -230,8 +230,11 @@ class DBCommands:
                 SET city = ?, price = ?, details = ?, session_updated = 1 WHERE url = ?'''
 
 class Messages:
-    hi_message: str = f"Привет! Напишите /{Commands.get_general_info_graph}, чтобы начать работу."
-    enter_price: str = f"Введите диапазон цен автомобиля (например, 0{PRICE_SPLIT_CHAR}10000):"
+    hi_message: str = f"Привет! Напишите /{Commands.get_general_info_graph}, чтобы вывести общую информацию о рынке."
+    hi_message1: str = f"Напишите /{Commands.get_popular_models}, чтобы вывести топ 10 самых популярных моделей."
+    hi_message2: str = f"Напишите /{Commands.get_price_range_models}, чтобы вывести ценовые диапазоны и динамику цен."
+
+    enter_price: str = f"Введите диапазон цен автомобиля (например, /0{PRICE_SPLIT_CHAR}10000):"
     enter_brand: str = "Выберите марку автомобиля:",
     enter_city: str = "Выберите город продажи:"
 
