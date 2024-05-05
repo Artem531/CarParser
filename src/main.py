@@ -7,6 +7,7 @@ import hashlib
 from config import DBTableName, BASE_URL, WEB_HEADERS, DBCommands, get_params, TEST_BRAND
 import time
 import threading
+from tqdm import tqdm
 
 def generate_db_name(params):
     params_str = params["brand"]
@@ -112,7 +113,6 @@ def run_with_timeout(func, timeout_seconds):
 
 def parse_data(params):
     DB_NAME = "master_database.db"
-    print(DB_NAME)
     page = 1  # Начальная страница
     cars_found = True  # Флаг для проверки, нашлись ли автомобили на странице
     cur_car_num = 1
@@ -126,7 +126,7 @@ def parse_data(params):
         try:
             if new_car_num % 250 == 0: # Сайт ограничивает число запросов.
                 print("wait to calm down the server")
-                time.sleep(50)
+                time.sleep(5)
 
             print(f"Обрабатываем страницу {page}...")
             params['page'] = str(page)  # Установка текущей страницы в параметрах запроса
@@ -151,52 +151,51 @@ def parse_data(params):
 
             # Если автомобили найдены, обработка каждого из них
             tmp_i = 0
-            while tmp_i < len(cars):
-                car = cars[tmp_i]
-                try:
-                    print(tmp_i, len(cars))
-                    # Ваш код для обработки информации об автомобиле
+            with tqdm(total=len(cars)) as pbar:
+                while tmp_i < len(cars):
+                    car = cars[tmp_i]
+                    try:
+                        title_element = car.find('a', class_='ga-title')
+                        if title_element:
+                            cur_car_num += 1
+                            price = getPrice(car)
+                            car_url = 'https://www.polovniautomobili.com' + title_element['href']
+                            car_url = car_url.split("?")[0]
+                            print(car_url)
+                            if check_car_in_db(car_url, DB_NAME):
+                                print("Машина уже была обработана ранее")
+                                tmp_i += 1
+                                continue
 
-                    title_element = car.find('a', class_='ga-title')
-                    if title_element:
-                        cur_car_num += 1
-                        price = getPrice(car)
-                        car_url = 'https://www.polovniautomobili.com' + title_element['href']
-                        car_url = car_url.split("?")[0]
-                        print(car_url)
-                        if check_car_in_db(car_url, DB_NAME):
-                            print("Машина уже была обработана ранее")
-                            tmp_i += 1
-                            continue
+                            new_car_num += 1
+                            car_details = parse_car_page(car_url, session, WEB_HEADERS)
 
-                        new_car_num += 1
-                        car_details = parse_car_page(car_url, session, WEB_HEADERS)
+                            city = car.find("div", class_="city").get_text(strip=True)
 
-                        city = car.find("div", class_="city").get_text(strip=True)
-
-                        # Вывод или обработка информации
-                        print(f"{cur_car_num}/{all_cars_num}: URL: {car_url}, Город: {city}, Цена: {price}, Детали: {car_details}")
-                        save_car_to_db({
-                            'url': car_url,
-                            'city': city,
-                            'price': price,
-                            'details': car_details
-                        }, DB_NAME)
-                        print('________________________________')
-                    else:
-                        print('no title_element')
-                        print('________________________________')
-                except:
-                    print(error)
-                    print("wait to calm down the server after error")
-                    time.sleep(50)
-                    continue
-                tmp_i += 1
+                            # Вывод или обработка информации
+                            print(f"{cur_car_num}/{all_cars_num}: URL: {car_url}, Город: {city}, Цена: {price}, Детали: {car_details}")
+                            save_car_to_db({
+                                'url': car_url,
+                                'city': city,
+                                'price': price,
+                                'details': car_details
+                            }, DB_NAME)
+                            print('________________________________')
+                        else:
+                            print('no title_element')
+                            print('________________________________')
+                    except:
+                        print(error)
+                        print("wait to calm down the server after error")
+                        time.sleep(5)
+                        continue
+                    tmp_i += 1
+                    pbar.update(1)
 
         except Exception as error:
             print(error)
             print("wait to calm down the server after error")
-            time.sleep(50)
+            time.sleep(5)
             continue
                 #break
             #break
@@ -255,23 +254,25 @@ def save_sold_cars_to_separate_table(DB_NAME):
     session = requests.Session()
     car_i = 0
     actually_sold_cars = []
-    while car_i < len(sold_cars):
-        if car_i % 500 == 0:
-            print(car_i, len(sold_cars))
+    print("Проверяем проданные машины")
+    with tqdm(total=len(sold_cars)) as pbar:
+        while car_i < len(sold_cars):
+            car = sold_cars[car_i]
+            try:
+                car_details = parse_car_page(car[0], session, WEB_HEADERS)
+            except Exception as e:
+                print(e)
+                continue
+            car_i += 1
 
-        car = sold_cars[car_i]
-        try:
-            car_details = parse_car_page(car[0], session, WEB_HEADERS)
-        except Exception as e:
-            print(e)
-            continue
-        car_i += 1
+            if(len(list(car_details)) == 0):
+                actually_sold_cars.append(car)
 
-        if(len(list(car_details)) == 0):
-            actually_sold_cars.append(car)
+            pbar.update(1)
 
     # Перемещаем эти автомобили в таблицу sold_cars
-    for car in actually_sold_cars:
+    print("Перемещаем эти автомобили в таблицу sold_cars")
+    for car in tqdm(actually_sold_cars):
         url, city, price, details, _ = car
         try:
             c.execute(DBCommands.insert_in_sold_cars, (url, city, price, details))

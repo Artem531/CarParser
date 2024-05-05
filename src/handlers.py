@@ -1,12 +1,13 @@
 import telebot
 from datetime import datetime, timedelta
+from tqdm import tqdm
 
 from config import (
     get_cities,
     BOT_TOKEN,
     Commands)
 
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import InlineKeyboardMarkup
 
 import visualizePopularCars
 import visualizePriceRangePlot
@@ -15,10 +16,10 @@ from utils import getPriceFromDB, filterGarbageFromDigital
 bot = telebot.TeleBot(BOT_TOKEN)
 MAIN_PIPLINE = ""
 private_group_chat_id = -1002008465600
+print("Привет!")
 
 @bot.message_handler(commands=[Commands.start])
 def send_welcome(message):
-    print(message.chat.id)
     bot.reply_to(message, Messages.hi_message)
     bot.reply_to(message, Messages.hi_message1)
     bot.reply_to(message, Messages.hi_message2)
@@ -156,7 +157,6 @@ def callback_query(call):
 
     if MAIN_PIPLINE.startswith(f'{Commands.ask_brand}/'):
         # Если была выбран бренд автомобиля
-        print("!", call.data)
         prefix_value = call.data.split(BRAND_SPLIT_CHAR)
         brand = prefix_value[1]
 
@@ -166,7 +166,7 @@ def callback_query(call):
             bot.send_message(call.message.chat.id, f"Выбрано: {brand}")
 
         params['Марка'] = [brand]
-        print(brand, params['Марка'])
+        print(f"Выбран: {brand}")
 
         MAIN_PIPLINE = MAIN_PIPLINE[len(f'{Commands.ask_brand}/'):]
         call_next_step_in_pipline(call)
@@ -174,10 +174,9 @@ def callback_query(call):
 
     elif MAIN_PIPLINE.startswith(f'{Commands.ask_city}/'):
         # Если была выбран бренд автомобиля
-        print("!", call.data)
         city = call.data.split(BRAND_SPLIT_CHAR)[1]
         params['Город'] = [city]
-        print(city, params['Город'])
+        print(f"Выбран: {city}")
 
         try:
             bot.send_message(call.chat.id, f"Выбрано: {city}")
@@ -203,9 +202,10 @@ def callback_query(call):
         return
     elif MAIN_PIPLINE.startswith(f'{Commands.ask_group_by_month}'):
         # Если был выбран бренд автомобиля
-        print("!", call.data)
+
         result = call.data.split(BRAND_SPLIT_CHAR)[1]
         params['Группировка'] = result == "Yes"
+        print(f"Выбран: {result}")
 
         MAIN_PIPLINE = MAIN_PIPLINE[len(f'{Commands.ask_group_by_month}/'):]
         call_next_step_in_pipline(call)
@@ -229,8 +229,10 @@ def callback_query(call):
                 bot.send_photo(call.chat.id, photo)
         return
 
+
 def add_to_raw_data(raw_data, cars, isCarModelNeeded):
-    for data_i in cars:
+    print("Обрабатываю сырые данные")
+    for data_i in tqdm(cars):
         try:
             # Получаем дату из поля "Дата"
             date_str = data_i["Дата"]
@@ -304,6 +306,7 @@ def send_photo(message, region_of_interest):
     SELECT_COMMAND = DBCommands.select_in_cars
 
     cars = get_all_cars(SELECT_COMMAND)
+    print("Собрал все данные")
 
     add_to_raw_data(raw_data, cars, isCarModelNeeded)
     raw_cars_status.extend([False] * len(raw_data["Цена"]))
@@ -311,10 +314,13 @@ def send_photo(message, region_of_interest):
     SELECT_COMMAND = DBCommands.select_in_sold_cars
     sold_cars = get_all_cars(SELECT_COMMAND)
     add_to_raw_data(raw_data, sold_cars, isCarModelNeeded)
+    print("Подготовил все данные")
 
     raw_cars_status.extend([True] * abs(len(raw_data["Цена"]) - len(raw_cars_status)))
 
     data, cars_status = filter_data(raw_data, raw_cars_status, region_of_interest, num_stat_category)
+    print("Отфильтровал все данные")
+
     if len(data["Цена"]) == 0:
         bot.send_message(message.chat.id, ErrorMessages.no_data)
         return
@@ -324,6 +330,7 @@ def send_photo(message, region_of_interest):
     statistics = calculate_statistics(data, cars_status)
     value_tables = prepare_value_tables(data)
 
+    print("Рисую")
     draw_general_data(data, cars_status, value_tables, statistics, photo_path)
 
     with open(photo_path, 'rb') as photo:

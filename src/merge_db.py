@@ -39,7 +39,7 @@ def import_data(source_db, master_db_connection, table_name):
 
 
 def main():
-    master_db_path = "master_database.db"  # Path to your master database
+    master_db_path = "../master_database.db"  # Path to your master database
     source_dbs = []  # List of your source database paths
 
     params = get_params(brand="")
@@ -66,7 +66,6 @@ def main():
 
     # Import data from each source database
     for db in source_dbs:
-        print(db)
         import_data(db, master_connection, "cars")
         import_data(db, master_connection, "sold_cars")
 

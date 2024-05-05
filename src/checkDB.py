@@ -30,7 +30,6 @@ def get_all_cars(SELECT_COMMAND):
     DB_NAME = "master_database.db"
     data = []
 
-    print(DB_NAME)
     try:
         """Выводит все данные об автомобилях из базы данных."""
         conn = sqlite3.connect(DB_NAME)
@@ -43,7 +42,6 @@ def get_all_cars(SELECT_COMMAND):
     c.execute("PRAGMA table_info(cars)")
     columns = c.fetchall()
     column_names = [column[1] for column in columns]
-    print(column_names)
 
     try:
         c.execute(SELECT_COMMAND)
@@ -52,7 +50,8 @@ def get_all_cars(SELECT_COMMAND):
 
     cars = c.fetchall()
     if cars:
-        for i, car in enumerate(cars):
+        print("Извлекаю данные из БД")
+        for i, car in tqdm(enumerate(cars)):
             url, city, price, details, time = car
             details_dict = json.loads(details)
             data.append({"URL": url, "Город": city, "Цена": price, "Дата": time, "Детали": details_dict})

@@ -5,6 +5,7 @@ import matplotlib.patheffects as PathEffects
 import matplotlib.lines as mlines
 from utils import normalizeString
 import re
+from tqdm import tqdm
 
 def generate_raw_data(num_of_cars):
     return {
@@ -26,16 +27,18 @@ def filter_data(raw_data, raw_cars_status, region_of_interest, num_stat_category
     cars_status = []
 
     # Нормализуем значения по которым будем делать фильтрацию
+    print("Нормализую данные")
     for category in region_of_interest.keys():
         if category in num_stat_category:
             continue
         else:
             values = region_of_interest[category]
-            for i in range(len(values)):
+            for i in tqdm(range(len(values))):
                 values[i] = normalizeString(values[i])
 
     # Делаем фильтрацию
-    for i in range(len(raw_data['Цена'])):
+    print("Фильтрую данные")
+    for i in tqdm(range(len(raw_data['Цена']))):
         if criteria_check(raw_data, region_of_interest, num_stat_category, i):
             continue
         for category in raw_data:
@@ -111,7 +114,6 @@ def draw_general_data(data, cars_status, value_tables, statistics, res_image_pat
     drawn_annotations = set()  # Множество для отслеживания аннотаций
     drawn_segments = set()  # Для отслеживания уже нарисованных отрезков
     df_data = pd.DataFrame(data)
-    print(data["Город"])
 
     # Подготовка данных перед циклом
     headers = list(data.keys())  # Заголовки для упрощения доступа
@@ -127,33 +129,35 @@ def draw_general_data(data, cars_status, value_tables, statistics, res_image_pat
 
     plt.figure(figsize=(32, 64))
     # Настройка и отрисовка данных
-    for index, row in df_data.iterrows():
-        y_values = [value_tables[header][row[header]] for header in data.keys()]
-        sold = cars_status[index]
-        color = 'g' if not sold else 'r'
+    with tqdm(total=len(df_data)) as pbar:
+        for index, row in df_data.iterrows():
+            y_values = [value_tables[header][row[header]] for header in data.keys()]
+            sold = cars_status[index]
+            color = 'g' if not sold else 'r'
 
-        # Прорисовка отрезков линии, если они еще не были нарисованы
-        for i in range(len(y_values) - 1):
-            check_and_draw(i, y_values[i], i + 1, y_values[i + 1], drawn_segments, color='grey')
+            # Прорисовка отрезков линии, если они еще не были нарисованы
+            for i in range(len(y_values) - 1):
+                check_and_draw(i, y_values[i], i + 1, y_values[i + 1], drawn_segments, color='grey')
 
-        # Отрисовка аннотаций, если они ещё не были нарисованы
-        for i, (x, y) in enumerate(zip(x_values, y_values)):
-            basic_text = row[annotations[0][i]]  # Базовая аннотация
-            stat_text = statistics[annotations[1][i]][sold][row[annotations[1][i]]]  # Статистика
+            # Отрисовка аннотаций, если они ещё не были нарисованы
+            for i, (x, y) in enumerate(zip(x_values, y_values)):
+                basic_text = row[annotations[0][i]]  # Базовая аннотация
+                stat_text = statistics[annotations[1][i]][sold][row[annotations[1][i]]]  # Статистика
 
-            # Параметры отображения текста
-            text_properties_basic = {'fontsize': 24, 'ha': 'right', 'va': 'bottom'}
-            text_properties_stat = {'fontsize': 22, 'ha': 'center',
-                                    'path_effects': text_effect if not sold else 'center', 'va': 'top', 'color': color,
-                                    'path_effects': text_effect}
+                # Параметры отображения текста
+                text_properties_basic = {'fontsize': 24, 'ha': 'right', 'va': 'bottom'}
+                text_properties_stat = {'fontsize': 22, 'ha': 'center',
+                                        'path_effects': text_effect if not sold else 'center', 'va': 'top', 'color': color,
+                                        'path_effects': text_effect}
 
-            # Аннотация базовой информации
-            check_and_annotate(x, y, basic_text, sold, text_properties_basic, drawn_annotations)
+                # Аннотация базовой информации
+                check_and_annotate(x, y, basic_text, sold, text_properties_basic, drawn_annotations)
 
-            offset_x = 0.05 * len(str(stat_text)) / 2
-            # Аннотация статистики
-            check_and_annotate(x + (offset_x if not sold else -offset_x), y + offset_y, str(stat_text), sold,
-                               text_properties_stat, drawn_annotations)
+                offset_x = 0.05 * len(str(stat_text)) / 2
+                # Аннотация статистики
+                check_and_annotate(x + (offset_x if not sold else -offset_x), y + offset_y, str(stat_text), sold,
+                                   text_properties_stat, drawn_annotations)
+            pbar.update(1)
 
     # Добавление названия графика и осей
     plt.title('Визуализация')
