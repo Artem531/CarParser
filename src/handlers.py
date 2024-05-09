@@ -5,7 +5,8 @@ from tqdm import tqdm
 from config import (
     get_cities,
     BOT_TOKEN,
-    Commands)
+    Commands,
+    TIME_DELTA)
 
 from telebot.types import InlineKeyboardMarkup
 
@@ -238,9 +239,9 @@ def add_to_raw_data(raw_data, cars, isCarModelNeeded):
             date_str = data_i["Дата"]
             date = datetime.strptime(date_str.split()[0], '%Y-%m-%d')
 
-            # Проверяем, если дата обновления меньше, чем текущая дата минус 3 дня,
+            # Проверяем, если дата обновления меньше, чем текущая дата минус TIME_DELTA дня,
             # то пропускаем эту запись
-            if date > datetime.now() - timedelta(days=3):
+            if date > datetime.now() - timedelta(days=TIME_DELTA):
                 continue
 
             price = getPriceFromDB(data_i["Цена"])

@@ -20,6 +20,8 @@ def scheduled_fetch():
 
 # Настройка расписания
 schedule.every().day.at("00:00").do(scheduled_fetch)
+
+
 #scheduled_fetch()
 
 # Функция для обработки запланированных задач в отдельном потоке

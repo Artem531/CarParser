@@ -3,6 +3,8 @@ BRAND_SPLIT_CHAR = ":"
 PRICE_SPLIT_CHAR = "-"
 TEST_BRAND = "bmw"
 BASE_URL = 'https://www.polovniautomobili.com/auto-oglasi/pretraga'
+TIME_DELTA = 0
+
 
 WEB_HEADERS = {
     'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',

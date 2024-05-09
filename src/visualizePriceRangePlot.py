@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from config import DBCommands
 from checkDB import get_all_cars
 from utils import getPriceFromDB, normalizeString
-from config import Commands
+from config import Commands, TIME_DELTA
 
 def fetch_data(command):
     """
@@ -32,9 +32,9 @@ def prepare_data(data, status, region_of_interest, group_by_month):
             continue
 
         date = datetime.strptime(date_str.split()[0], '%Y-%m-%d')
-        # Проверяем, если дата обновления меньше, чем текущая дата минус 3 дня,
+        # Проверяем, если дата обновления меньше, чем текущая дата минус TIME_DELTA дня,
         # то пропускаем эту запись
-        if date > datetime.now() - timedelta(days=3):
+        if date > datetime.now() - timedelta(days=TIME_DELTA):
             continue
 
         if price < 1000:
