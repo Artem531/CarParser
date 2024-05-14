@@ -1,6 +1,9 @@
 import re
 
 def normalizeString(str):
+    str = str.replace("š", "s")
+    str = str.replace("Š", "S")
+
     def tmp(string):
        return re.sub("[^a-zA-Zа-яА-ЯёЁ]", "", string)
     return tmp(str).lower()

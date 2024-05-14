@@ -15,7 +15,7 @@ def fetch_data(command):
 
 import seaborn as sns
 
-def prepare_data(data, status, region_of_interest, group_by_month):
+def prepare_data(data, status, region_of_interest, group_by_month, price_thresh):
     """
     Подготавливает данные, преобразуя даты и цены в формат, подходящий для анализа.
     """
@@ -37,7 +37,7 @@ def prepare_data(data, status, region_of_interest, group_by_month):
         if date > datetime.now() - timedelta(days=TIME_DELTA):
             continue
 
-        if price < 1000:
+        if price < price_thresh:
             continue
 
         if group_by_month:
@@ -50,7 +50,7 @@ def prepare_data(data, status, region_of_interest, group_by_month):
     return df
 
 
-def main(region_of_interest, group_by_month):
+def main(region_of_interest, group_by_month, price_thresh):
     """
     Основная функция для выполнения всех операций.
     """
@@ -59,12 +59,12 @@ def main(region_of_interest, group_by_month):
     # Для автомобилей в продаже
     command = DBCommands.select_in_cars
     data = fetch_data(command)
-    df_in_cars = prepare_data(data, 'В продаже', region_of_interest, group_by_month)
+    df_in_cars = prepare_data(data, 'В продаже', region_of_interest, group_by_month, price_thresh)
 
     # Для проданных автомобилей
     command = DBCommands.select_in_sold_cars
     data = fetch_data(command)
-    df_in_sold_cars = prepare_data(data, 'Продано', region_of_interest, group_by_month)
+    df_in_sold_cars = prepare_data(data, 'Продано', region_of_interest, group_by_month, price_thresh)
 
     # Объединяем данные
     df = pd.concat([df_in_cars, df_in_sold_cars])
@@ -91,4 +91,4 @@ def main(region_of_interest, group_by_month):
 
 
 if __name__ == "__main__":
-    main("BMW")
+    main("BMW", False, 10000)

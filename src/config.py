@@ -205,6 +205,8 @@ class Commands:
     ask_city: str = "ask_city"
     ask_brand: str = "ask_brand"
     ask_group_by_month: str = "ask_group_by_month"
+    ask_price_threshold: str = "ask_price_threshold"
+    ask_top_n: str = "ask_top_n"
 
 class DBCommands:
     data_headers: str = "url, city, price, details, insert_time"
@@ -237,6 +239,8 @@ class Messages:
     hi_message2: str = f"Напишите /{Commands.get_price_range_models}, чтобы вывести ценовые диапазоны и динамику цен."
 
     enter_price: str = f"Введите диапазон цен автомобиля (например, /0{PRICE_SPLIT_CHAR}10000):"
+    enter_price_threshold: str = f"Введите порог старта цен автомобиля (например, /10000):"
+    enter_top_n_threshold: str = f"Введите кол-во машин в топе (например, /10):"
     enter_brand: str = "Выберите марку автомобиля:",
     enter_city: str = "Выберите город продажи:"
 

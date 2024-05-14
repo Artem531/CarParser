@@ -42,6 +42,13 @@ def get_city_keyboard(prefix):
         buttons = buttons[num_rows:]
     return keyboard
 
+def get_start_keyboard():
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    buttons = [InlineKeyboardButton("Start", callback_data="Start:Start")]
+    keyboard.row(*buttons[:1])
+
+    return keyboard
+
 def get_confirm_keyboard():
     keyboard = InlineKeyboardMarkup(row_width=2)
     buttons = [InlineKeyboardButton("Yes", callback_data="Confirm:Yes"),
@@ -59,28 +66,37 @@ def get_general_info_graph(message):
     MAIN_PIPLINE = \
         f'Init/{Commands.ask_brand}/{Commands.ask_city}/{Commands.ask_price}/{Commands.get_general_info_graph}'
 
-    keyboard = get_brands_keyboard(Commands.get_general_info_graph)
+    keyboard = get_start_keyboard()
+    bot.send_message(message.chat.id, "Нажмите старт для начала работы", reply_markup=keyboard)
 
-    keyboard.add(InlineKeyboardButton("All", callback_data=Commands.get_general_info_graph + ":All"))
-    bot.send_message(message.chat.id, Messages.enter_brand, reply_markup=keyboard)
+def printPopularCars(chat_id, price_thresh, top_n):
+    result = visualizePopularCars.main(price_thresh, top_n)
+    bot.send_message(chat_id, "Марки/Модели/Кол-во")
+    result_str = ""
+    for i, car in enumerate(result):
+        print(car)
+        result_str += f"#{i}: {str(car)}\n"
+
+    bot.send_message(chat_id, result_str)
 
 @bot.message_handler(commands=[Commands.get_popular_models], func=lambda message: message.chat.id == private_group_chat_id)
 def get_popular_models(message):
-    result = visualizePopularCars.main()
+    global MAIN_PIPLINE
 
-    bot.send_message(message.chat.id, "Марки/Модели/Кол-во")
-    for car in result:
-        bot.send_message(message.chat.id, str(car))
+    MAIN_PIPLINE = f'Init/{Commands.ask_price_threshold}/{Commands.ask_top_n}/{Commands.get_popular_models}'
+
+    keyboard = get_start_keyboard()
+    bot.send_message(message.chat.id, "Нажмите старт для начала работы", reply_markup=keyboard)
 
 @bot.message_handler(commands=[Commands.get_price_range_models], func=lambda message: message.chat.id == private_group_chat_id)
 def get_price_range_models(message):
     global MAIN_PIPLINE
 
     MAIN_PIPLINE = \
-        f'Init/{Commands.ask_brand}/{Commands.ask_group_by_month}/{Commands.get_price_range_models}'
+        f'Init/{Commands.ask_brand}/{Commands.ask_price_threshold}/{Commands.ask_group_by_month}/{Commands.get_price_range_models}'
 
-    keyboard = get_brands_keyboard(Commands.get_price_range_models)
-    bot.send_message(message.chat.id, Messages.enter_brand, reply_markup=keyboard)
+    keyboard = get_start_keyboard()
+    bot.send_message(message.chat.id, "Нажмите старт для начала работы", reply_markup=keyboard)
 
 ########################################################################################################################
 
@@ -103,7 +119,16 @@ params = {}
 def call_next_step_in_pipline(call):
     global MAIN_PIPLINE
 
-    if MAIN_PIPLINE.startswith(f'{Commands.ask_city}/'):
+    if MAIN_PIPLINE.startswith(f'{Commands.ask_brand}/'):
+        keyboard = get_brands_keyboard(Commands.get_general_info_graph)
+        keyboard.add(InlineKeyboardButton("All", callback_data=Commands.get_general_info_graph + ":All"))
+
+        try:
+            bot.send_message(call.chat.id, Messages.enter_city, reply_markup=keyboard)
+        except:
+            bot.send_message(call.message.chat.id, Messages.enter_city, reply_markup=keyboard)
+
+    elif MAIN_PIPLINE.startswith(f'{Commands.ask_city}/'):
         keyboard = get_city_keyboard("")
         keyboard.add(
             InlineKeyboardButton("All", callback_data=":All"))
@@ -112,6 +137,22 @@ def call_next_step_in_pipline(call):
             bot.send_message(call.chat.id, Messages.enter_city, reply_markup=keyboard)
         except:
             bot.send_message(call.message.chat.id, Messages.enter_city, reply_markup=keyboard)
+
+    elif MAIN_PIPLINE.startswith(f'{Commands.ask_price_threshold}/'):
+        try:
+            msg = bot.send_message(call.chat.id, Messages.enter_price_threshold)
+        except:
+            msg = bot.send_message(call.message.chat.id, Messages.enter_price_threshold)
+
+        bot.register_next_step_handler(msg, callback_query)
+
+    elif MAIN_PIPLINE.startswith(f'{Commands.ask_top_n}/'):
+        try:
+            msg = bot.send_message(call.chat.id, Messages.enter_top_n_threshold)
+        except:
+            msg = bot.send_message(call.message.chat.id, Messages.enter_top_n_threshold)
+
+        bot.register_next_step_handler(msg, callback_query)
 
     elif MAIN_PIPLINE.startswith(f'{Commands.ask_price}/'):
         try:
@@ -146,6 +187,20 @@ def call_next_step_in_pipline(call):
         callback_query(call)
         return
 
+    elif MAIN_PIPLINE.startswith(f'{Commands.get_popular_models}'):
+        try:
+            msg = bot.send_message(call.chat.id, "Обрабатываю данные")
+        except:
+            msg = bot.send_message(call.message.chat.id, "Обрабатываю данные")
+        callback_query(call)
+        return
+
+
+def is_wrong_price_thresh(thresh_price):
+    if not thresh_price.isdigit() or int(thresh_price) < 0:
+        return True
+    return False
+
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     global params
@@ -155,6 +210,8 @@ def callback_query(call):
     if MAIN_PIPLINE.startswith(f'Init/'):
         MAIN_PIPLINE = MAIN_PIPLINE[len(f'Init/'):]
         params = {}
+        call_next_step_in_pipline(call)
+        return
 
     if MAIN_PIPLINE.startswith(f'{Commands.ask_brand}/'):
         # Если была выбран бренд автомобиля
@@ -171,6 +228,54 @@ def callback_query(call):
 
         MAIN_PIPLINE = MAIN_PIPLINE[len(f'{Commands.ask_brand}/'):]
         call_next_step_in_pipline(call)
+        return
+
+    elif MAIN_PIPLINE.startswith(f'{Commands.ask_price_threshold}/'):
+        thresh = call.text.strip()[1:]
+
+        if is_wrong_price_thresh(thresh):
+            try:
+                bot.send_message(call.chat.id, f"Выбрано: {thresh} - Исправьте ошибку")
+            except:
+                bot.send_message(call.message.chat.id, f"Выбрано: {thresh} - Исправьте ошибку")
+
+            call_next_step_in_pipline(call)
+            return
+
+        params['Ценовой порог'] = int(thresh)
+
+        try:
+            bot.send_message(call.chat.id, f"Выбрано: {thresh}")
+        except:
+            bot.send_message(call.message.chat.id, f"Выбрано: {thresh}")
+
+        MAIN_PIPLINE = MAIN_PIPLINE[len(f'{Commands.ask_price_threshold}/'):]
+        call_next_step_in_pipline(call)
+
+        return
+
+    elif MAIN_PIPLINE.startswith(f'{Commands.ask_top_n}/'):
+        thresh = call.text.strip()[1:]
+
+        if is_wrong_price_thresh(thresh):
+            try:
+                bot.send_message(call.chat.id, f"Выбрано: {thresh} - Исправьте ошибку")
+            except:
+                bot.send_message(call.message.chat.id, f"Выбрано: {thresh} - Исправьте ошибку")
+
+            call_next_step_in_pipline(call)
+            return
+
+        params['Кол-во в топе'] = int(thresh)
+
+        try:
+            bot.send_message(call.chat.id, f"Выбрано: {thresh}")
+        except:
+            bot.send_message(call.message.chat.id, f"Выбрано: {thresh}")
+
+        MAIN_PIPLINE = MAIN_PIPLINE[len(f'{Commands.ask_top_n}/'):]
+        call_next_step_in_pipline(call)
+
         return
 
     elif MAIN_PIPLINE.startswith(f'{Commands.ask_city}/'):
@@ -219,7 +324,7 @@ def callback_query(call):
         return
 
     if MAIN_PIPLINE.startswith(f'{Commands.get_price_range_models}'):
-        visualizePriceRangePlot.main(params["Марка"][0], params['Группировка'])
+        visualizePriceRangePlot.main(params["Марка"][0], params['Группировка'], params['Ценовой порог'])
 
         photo_path = f"{Commands.get_price_range_models}.jpg"
 
@@ -230,6 +335,13 @@ def callback_query(call):
                 bot.send_photo(call.chat.id, photo)
         return
 
+    if MAIN_PIPLINE.startswith(f'{Commands.get_popular_models}'):
+        try:
+            printPopularCars(call.message.chat.id, params["Ценовой порог"], params["Кол-во в топе"])
+        except:
+            printPopularCars(call.chat.id, params["Ценовой порог"], params["Кол-во в топе"])
+
+        return
 
 def add_to_raw_data(raw_data, cars, isCarModelNeeded):
     print("Обрабатываю сырые данные")

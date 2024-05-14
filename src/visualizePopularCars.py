@@ -14,7 +14,7 @@ def fetch_data(command):
 
 import seaborn as sns
 
-def prepare_data(data, status):
+def prepare_data(data, price_thresh):
     """
     Подготавливает данные, преобразуя даты и цены в формат, подходящий для анализа.
     """
@@ -29,7 +29,7 @@ def prepare_data(data, status):
         if price == None:
             continue
 
-        if price < 1000:
+        if price < price_thresh:
             continue
 
 
@@ -46,21 +46,21 @@ def prepare_data(data, status):
     return df
 
 
-def main():
+def main(price_thresh, top_n):
     """
     Основная функция для выполнения всех операций.
     """
     plt.figure(figsize=(32, 16))
 
     # Для автомобилей в продаже
-    command = DBCommands.select_in_cars
+    command = DBCommands.select_in_sold_cars
     data = fetch_data(command)
-    df_in_cars = prepare_data(data, 'В продаже')
+    df_in_cars = prepare_data(data, price_thresh)
 
-    top_cars = df_in_cars.groupby(['Mark', 'Model']).size().sort_values(ascending=False).head(10)
+    top_cars = df_in_cars.groupby(['Mark', 'Model']).size().sort_values(ascending=False).head(top_n)
     top_cars_list = [(mark, model, count) for (mark, model), count in top_cars.items()]
 
     return top_cars_list
 
 if __name__ == "__main__":
-    main()
+    main(1000, 10)
