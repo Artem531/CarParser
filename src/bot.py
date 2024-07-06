@@ -1,6 +1,9 @@
 import schedule
 import time
 import threading
+import os
+import sys
+from datetime import datetime, timedelta
 
 from handlers import start_polling
 from main import (parse_data,
@@ -18,14 +21,24 @@ def scheduled_fetch():
     filter_selling_cars_from_sold_cars(DB_NAME)
 
 
+# Функция для перезапуска приложения
+def restart_program():
+    print("Перезапуск программы...")
+    os.execv(sys.executable, ['python'] + sys.argv)
+
 # Настройка расписания
 schedule.every().day.at("00:00").do(scheduled_fetch)
-#scheduled_fetch()
+
+# Установка времени для перезапуска (например, каждые 1 дней)
+restart_time = datetime.now() + timedelta(days=1)
 
 # Функция для обработки запланированных задач в отдельном потоке
 def start_scheduled_tasks():
+    global restart_time
     while True:
         schedule.run_pending()
+        if datetime.now() >= restart_time:
+            restart_program()
         time.sleep(1)
 
 # Запуск polling в отдельном потоке
