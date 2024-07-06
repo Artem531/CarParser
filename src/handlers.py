@@ -351,7 +351,7 @@ def add_to_raw_data(raw_data, cars, isCarModelNeeded):
             if isCarModelNeeded:
                 details_fields.append("Model")
 
-            missing_details_fields = [field for field in data_i['Детали'] if field not in details]
+            missing_details_fields = [field for field in details_fields if field not in data_i['Детали']]
 
             if missing_details_fields:
                 raise ValueError(f"Missing fields: {missing_details_fields}")
