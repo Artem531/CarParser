@@ -351,7 +351,7 @@ def add_to_raw_data(raw_data, cars, isCarModelNeeded):
             if isCarModelNeeded:
                 details_fields.append("Model")
 
-            if not all(field in data_i for field in details_fields):
+            if not all(field in data_i['Детали'] for field in details_fields):
                 raise ValueError("Missing required field in data_i")
 
             # Получаем дату из поля "Дата"
