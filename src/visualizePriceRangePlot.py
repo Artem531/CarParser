@@ -28,6 +28,7 @@ def prepare_data(data, status, region_of_interest, group_by_month, price_thresh)
 
         if missing_details_fields:
             print(f"Missing fields: {missing_details_fields}")
+            print(item)
             continue
 
         if normalizeString(item["Детали"]["Marka"]) != normalizeString(region_of_interest):
