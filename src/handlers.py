@@ -347,6 +347,13 @@ def add_to_raw_data(raw_data, cars, isCarModelNeeded):
     print("Обрабатываю сырые данные")
     for data_i in tqdm(cars):
         try:
+            details_fields = ["Marka", "Gorivo", "Kilometraža", "Menjač"]
+            if isCarModelNeeded:
+                details_fields.append("Model")
+
+            if not all(field in data_i for field in details_fields):
+                raise ValueError("Missing required field in data_i")
+
             # Получаем дату из поля "Дата"
             date_str = data_i["Дата"]
             date = datetime.strptime(date_str.split()[0], '%Y-%m-%d')
