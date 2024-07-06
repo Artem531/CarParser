@@ -23,11 +23,14 @@ def prepare_data(data, status, region_of_interest, group_by_month, price_thresh)
     prices = []
 
     for item in data:
-        details_fields = ["Marka", "Цена"]
-        missing_details_fields = [field for field in details_fields if field not in item['Детали']]
+        details_fields = ["Marka"]
+        general_fields = ["Цена", "Дата"]
 
-        if missing_details_fields:
-            print(f"Missing fields: {missing_details_fields}")
+        missing_details_fields = [field for field in details_fields if field not in item['Детали']]
+        missing_general_fields = [field for field in general_fields if field not in item]
+
+        if missing_details_fields or missing_general_fields:
+            print(f"Missing fields: {missing_details_fields + missing_general_fields}")
             print(item)
             continue
 
