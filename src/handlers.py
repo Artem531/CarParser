@@ -348,8 +348,6 @@ def add_to_raw_data(raw_data, cars, isCarModelNeeded):
     for data_i in tqdm(cars):
         try:
             details_fields = ["Marka", "Gorivo", "Kilometraža", "Menjač"]
-            if isCarModelNeeded:
-                details_fields.append("Model")
 
             missing_details_fields = [field for field in details_fields if field not in data_i['Детали']]
 
