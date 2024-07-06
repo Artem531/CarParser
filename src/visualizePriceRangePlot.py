@@ -23,6 +23,12 @@ def prepare_data(data, status, region_of_interest, group_by_month, price_thresh)
     prices = []
 
     for item in data:
+        details_fields = ["Marka", "Цена"]
+        missing_details_fields = [field for field in details_fields if field not in item['Детали']]
+
+        if missing_details_fields:
+            raise ValueError(f"Missing fields: {missing_details_fields}")
+
         if normalizeString(item["Детали"]["Marka"]) != normalizeString(region_of_interest):
             continue
 
