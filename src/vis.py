@@ -5,16 +5,17 @@ import matplotlib.patheffects as PathEffects
 import matplotlib.lines as mlines
 from utils import normalizeString
 import re
+import numpy as np
 from tqdm import tqdm
 
 def generate_raw_data(num_of_cars):
     return {
-        'Цена': [random.randint(5000, 100000) for _ in range(num_of_cars)],
+        'Цена': [random.randint(5000, 20000) for _ in range(num_of_cars)],
         'Город': [random.choice(['Москва', 'Санкт-Петербург', 'Новосибирск', 'Екатеринбург', 'Казань']) for _ in range(num_of_cars)],
         'Марка': [random.choice(['Toyota', 'Ford', 'Mercedes', 'BMW', 'Audi', 'Volkswagen', 'Hyundai', 'Kia']) for _ in range(num_of_cars)],
         'Модель': [random.choice(['Camry', 'Focus', 'C-Class', '3 Series', 'A4', 'Golf', 'Tucson', 'Sportage']) for _ in range(num_of_cars)],
         'Вид топлива': [random.choice(['бензин', 'дизель', 'электро', 'гибрид']) for _ in range(num_of_cars)],
-        'Пробег': [random.randint(0, 30000) for _ in range(num_of_cars)],
+        'Пробег': [random.randint(0, 300000) for _ in range(num_of_cars)],
         'Коробка передач': [random.choice(['автомат', 'механика']) for _ in range(num_of_cars)]
     }
 
@@ -86,15 +87,22 @@ def normalize_value(value, min_value, max_value, scale=10000):
 
 def prepare_value_tables(data):
     value_tables = {}
-    scale = 1000000
+    scale = 1000
     for category, values in data.items():
         if all(isinstance(value, (int, float)) for value in values):
-            min_value, max_value = min(values), max(values)
-            normalized_values = [normalize_value(value, min_value, max_value, scale) for value in values]
-            value_tables[category] = {value: normalized for value, normalized in zip(values, normalized_values)}
+            sorted_values = np.sort(values)
+
+            cur_value_table = {}
+            unique_index = 0
+            for value in sorted_values:
+                if value in cur_value_table:
+                    continue
+                cur_value_table[value] = unique_index * 100
+                unique_index += 1
+            value_tables[category] = cur_value_table
         else:
             set_values = set(values)
-            value_tables[category] = {value: (index + 1) / len(set_values) * scale for index, value in enumerate(set_values)}
+            value_tables[category] = {value: index * 10 for index, value in enumerate(set_values)}
     return value_tables
 
 def check_and_annotate(x, y, text, sold, text_properties, drawn_annotations):
@@ -184,12 +192,14 @@ def draw_general_data(data, cars_status, value_tables, statistics, res_image_pat
 if __name__ == "__main__":
     # Генерация данных
     num_of_cars = 100000
-    region_of_interest = {'Модель': "Focus", "Марка": "BMW"}
+    region_of_interest = {'Модель': ["Focus"], "Марка": ["BMW"]}
     num_stat_category = {"Цена": [], "Пробег": []}
 
     raw_data = generate_raw_data(num_of_cars)
-    data = filter_data(raw_data, region_of_interest, num_stat_category)
     cars_status = [random.choice([False, True]) for _ in range(num_of_cars)]
+
+    data, cars_status = filter_data(raw_data, cars_status, region_of_interest, num_stat_category)
+
     statistics = calculate_statistics(data, cars_status)
     value_tables = prepare_value_tables(data)
 
