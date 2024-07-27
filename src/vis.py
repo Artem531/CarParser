@@ -88,6 +88,7 @@ def normalize_value(value, min_value, max_value, scale=10000):
 def prepare_value_tables(data):
     value_tables = {}
     scale = 1000
+    maxValuesNum = max([len(values) for category, values in data.items()])
     for category, values in data.items():
         if all(isinstance(value, (int, float)) for value in values):
             sorted_values = np.sort(values)
@@ -97,12 +98,12 @@ def prepare_value_tables(data):
             for value in sorted_values:
                 if value in cur_value_table:
                     continue
-                cur_value_table[value] = unique_index * 100
+                cur_value_table[value] = maxValuesNum + unique_index * 100
                 unique_index += 1
             value_tables[category] = cur_value_table
         else:
             set_values = set(values)
-            value_tables[category] = {value: index * 80 for index, value in enumerate(set_values)}
+            value_tables[category] = {value: maxValuesNum + index * 80 for index, value in enumerate(set_values)}
     return value_tables
 
 def check_and_annotate(x, y, text, sold, text_properties, drawn_annotations):
