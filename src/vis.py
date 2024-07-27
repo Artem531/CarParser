@@ -102,7 +102,7 @@ def prepare_value_tables(data):
             value_tables[category] = cur_value_table
         else:
             set_values = set(values)
-            value_tables[category] = {value: index * 10 for index, value in enumerate(set_values)}
+            value_tables[category] = {value: index * 20 for index, value in enumerate(set_values)}
     return value_tables
 
 def check_and_annotate(x, y, text, sold, text_properties, drawn_annotations):
