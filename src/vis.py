@@ -154,7 +154,7 @@ def draw_general_data(data, cars_status, value_tables, statistics, res_image_pat
                 stat_text = statistics[annotations[1][i]][sold][row[annotations[1][i]]]  # Статистика
 
                 # Параметры отображения текста
-                text_properties_basic = {'fontsize': 48, 'ha': 'right', 'va': 'bottom'}
+                text_properties_basic = {'fontsize': 30, 'ha': 'right', 'va': 'bottom'}
                 text_properties_stat = {'fontsize': 44, 'ha': 'center',
                                         'path_effects': text_effect if not sold else 'center', 'va': 'top', 'color': color,
                                         'path_effects': text_effect}
@@ -175,7 +175,7 @@ def draw_general_data(data, cars_status, value_tables, statistics, res_image_pat
 
     # Установим метки на оси X
     plt.xticks(ticks=x_values, labels=annotations[0],
-               rotation=45, fontsize=20)
+               rotation=45, fontsize=40)
 
     # Создаем пользовательские легенды
     sold_handle = mlines.Line2D([], [], color='red', marker='o', linestyle='None', label='Продано')
