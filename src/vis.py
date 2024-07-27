@@ -155,17 +155,19 @@ def draw_general_data(data, cars_status, value_tables, statistics, res_image_pat
                 stat_text = statistics[annotations[1][i]][sold][row[annotations[1][i]]]  # Статистика
 
                 # Параметры отображения текста
+                stat_size = 44
                 text_properties_basic = {'fontsize': 30, 'ha': 'right', 'va': 'bottom'}
-                text_properties_stat = {'fontsize': 44, 'ha': 'center',
+                text_properties_stat = {'fontsize': stat_size, 'ha': 'center',
                                         'path_effects': text_effect if not sold else 'center', 'va': 'top', 'color': color,
                                         'path_effects': text_effect}
 
                 # Аннотация базовой информации
                 check_and_annotate(x, y, basic_text, sold, text_properties_basic, drawn_annotations)
 
-                offset_x = 0.3 * len(str(stat_text)) / 2
+                offset_x = 0.2 * len(str(stat_text)) / 2
+                stat_pixel_size = stat_size / 40
                 # Аннотация статистики
-                check_and_annotate(2*offset_x + x + (offset_x if not sold else -offset_x), y + offset_y, str(stat_text), sold,
+                check_and_annotate(2*offset_x + x + (stat_pixel_size * offset_x if not sold else -stat_pixel_size * offset_x), y + offset_y, str(stat_text), sold,
                                    text_properties_stat, drawn_annotations)
             pbar.update(1)
 
