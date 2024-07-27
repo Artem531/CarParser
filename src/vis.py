@@ -102,7 +102,7 @@ def prepare_value_tables(data):
             value_tables[category] = cur_value_table
         else:
             set_values = set(values)
-            value_tables[category] = {value: index * 30 for index, value in enumerate(set_values)}
+            value_tables[category] = {value: index * 100 for index, value in enumerate(set_values)}
     return value_tables
 
 def check_and_annotate(x, y, text, sold, text_properties, drawn_annotations):
@@ -153,15 +153,15 @@ def draw_general_data(data, cars_status, value_tables, statistics, res_image_pat
                 stat_text = statistics[annotations[1][i]][sold][row[annotations[1][i]]]  # Статистика
 
                 # Параметры отображения текста
-                text_properties_basic = {'fontsize': 24, 'ha': 'right', 'va': 'bottom'}
-                text_properties_stat = {'fontsize': 22, 'ha': 'center',
+                text_properties_basic = {'fontsize': 48, 'ha': 'right', 'va': 'bottom'}
+                text_properties_stat = {'fontsize': 44, 'ha': 'center',
                                         'path_effects': text_effect if not sold else 'center', 'va': 'top', 'color': color,
                                         'path_effects': text_effect}
 
                 # Аннотация базовой информации
                 check_and_annotate(x, y, basic_text, sold, text_properties_basic, drawn_annotations)
 
-                offset_x = 0.05 * len(str(stat_text)) / 2
+                offset_x = 0.1 * len(str(stat_text)) / 2
                 # Аннотация статистики
                 check_and_annotate(x + (offset_x if not sold else -offset_x), y + offset_y, str(stat_text), sold,
                                    text_properties_stat, drawn_annotations)
