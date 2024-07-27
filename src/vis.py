@@ -102,7 +102,7 @@ def prepare_value_tables(data):
             value_tables[category] = cur_value_table
         else:
             set_values = set(values)
-            value_tables[category] = {value: index * 100 for index, value in enumerate(set_values)}
+            value_tables[category] = {value: index * 80 for index, value in enumerate(set_values)}
     return value_tables
 
 def check_and_annotate(x, y, text, sold, text_properties, drawn_annotations):
@@ -126,6 +126,7 @@ def draw_general_data(data, cars_status, value_tables, statistics, res_image_pat
     # Подготовка данных перед циклом
     headers = list(data.keys())  # Заголовки для упрощения доступа
     x_values = range(len(headers))  # x координаты одинаковы для всех линий
+    x_values = np.array(x_values) * 2
 
     text_effect = [PathEffects.withStroke(linewidth=3, foreground="black")]
 
@@ -145,7 +146,7 @@ def draw_general_data(data, cars_status, value_tables, statistics, res_image_pat
 
             # Прорисовка отрезков линии, если они еще не были нарисованы
             for i in range(len(y_values) - 1):
-                check_and_draw(i, y_values[i], i + 1, y_values[i + 1], drawn_segments, color='grey')
+                check_and_draw(x_values[i], y_values[i], x_values[i + 1], y_values[i + 1], drawn_segments, color='grey')
 
             # Отрисовка аннотаций, если они ещё не были нарисованы
             for i, (x, y) in enumerate(zip(x_values, y_values)):
@@ -161,7 +162,7 @@ def draw_general_data(data, cars_status, value_tables, statistics, res_image_pat
                 # Аннотация базовой информации
                 check_and_annotate(x, y, basic_text, sold, text_properties_basic, drawn_annotations)
 
-                offset_x = 0.1 * len(str(stat_text)) / 2
+                offset_x = 0.2 * len(str(stat_text)) / 2
                 # Аннотация статистики
                 check_and_annotate(x + (offset_x if not sold else -offset_x), y + offset_y, str(stat_text), sold,
                                    text_properties_stat, drawn_annotations)
