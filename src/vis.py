@@ -168,10 +168,9 @@ def draw_general_data(data, cars_status, value_tables, statistics, res_image_pat
                 # Аннотация базовой информации
                 check_and_annotate(x, y, basic_text, sold, text_properties_basic, drawn_annotations)
 
-                offset_x = 0.2 * len(str(stat_text)) / 2
-                stat_pixel_size = stat_size / 30
+                offset_x = 0.25 * len(str(stat_text)) / 2
                 # Аннотация статистики
-                check_and_annotate(2*offset_x + x + (stat_pixel_size * offset_x if not sold else -stat_pixel_size * offset_x), y + offset_y, str(stat_text), sold,
+                check_and_annotate(2*offset_x + x + (offset_x if not sold else -offset_x), y + offset_y, str(stat_text), sold,
                                    text_properties_stat, drawn_annotations)
             pbar.update(1)
 
