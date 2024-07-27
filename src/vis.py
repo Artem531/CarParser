@@ -98,12 +98,12 @@ def prepare_value_tables(data):
             for value in sorted_values:
                 if value in cur_value_table:
                     continue
-                cur_value_table[value] = 40 * maxValuesNum + unique_index * 100
+                cur_value_table[value] = 20 * maxValuesNum + unique_index * 100
                 unique_index += 1
             value_tables[category] = cur_value_table
         else:
             set_values = set(values)
-            value_tables[category] = {value: 40 * maxValuesNum + index * 80 for index, value in enumerate(set_values)}
+            value_tables[category] = {value: 20 * maxValuesNum + index * 80 for index, value in enumerate(set_values)}
     return value_tables
 
 def check_and_annotate(x, y, text, sold, text_properties, drawn_annotations):
@@ -165,7 +165,7 @@ def draw_general_data(data, cars_status, value_tables, statistics, res_image_pat
 
                 offset_x = 0.2 * len(str(stat_text)) / 2
                 # Аннотация статистики
-                check_and_annotate(x + (offset_x if not sold else -offset_x), y + offset_y, str(stat_text), sold,
+                check_and_annotate(2*offset_x + x + (offset_x if not sold else -offset_x), y + offset_y, str(stat_text), sold,
                                    text_properties_stat, drawn_annotations)
             pbar.update(1)
 
