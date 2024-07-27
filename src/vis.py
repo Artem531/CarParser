@@ -8,6 +8,8 @@ import re
 import numpy as np
 from tqdm import tqdm
 
+maxValuesNum = 10
+
 def generate_raw_data(num_of_cars):
     return {
         'Цена': [random.randint(5000, 20000) for _ in range(num_of_cars)],
@@ -85,9 +87,11 @@ def normalize_value(value, min_value, max_value, scale=10000):
             max_value = 1
         return value / max_value * scale
 
+
 def prepare_value_tables(data):
     value_tables = {}
     scale = 1000
+    global maxValuesNum
     maxValuesNum = max([len(values) for category, values in data.items()])
     for category, values in data.items():
         if all(isinstance(value, (int, float)) for value in values):
@@ -165,7 +169,7 @@ def draw_general_data(data, cars_status, value_tables, statistics, res_image_pat
                 check_and_annotate(x, y, basic_text, sold, text_properties_basic, drawn_annotations)
 
                 offset_x = 0.2 * len(str(stat_text)) / 2
-                stat_pixel_size = stat_size / 40
+                stat_pixel_size = maxValuesNum / 10000 + stat_size / 50
                 # Аннотация статистики
                 check_and_annotate(2*offset_x + x + (stat_pixel_size * offset_x if not sold else -stat_pixel_size * offset_x), y + offset_y, str(stat_text), sold,
                                    text_properties_stat, drawn_annotations)
