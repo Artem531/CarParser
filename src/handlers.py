@@ -124,9 +124,9 @@ def call_next_step_in_pipline(call):
         keyboard.add(InlineKeyboardButton("All", callback_data=Commands.get_general_info_graph + ":All"))
 
         try:
-            bot.send_message(call.chat.id, Messages.enter_city, reply_markup=keyboard)
+            bot.send_message(call.chat.id, Messages.enter_brand, reply_markup=keyboard)
         except:
-            bot.send_message(call.message.chat.id, Messages.enter_city, reply_markup=keyboard)
+            bot.send_message(call.message.chat.id, Messages.enter_brand, reply_markup=keyboard)
 
     elif MAIN_PIPLINE.startswith(f'{Commands.ask_city}/'):
         keyboard = get_city_keyboard("")
