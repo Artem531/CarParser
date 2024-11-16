@@ -35,7 +35,8 @@ def prepare_data(data, status, region_of_interest, group_by_month, price_thresh)
             continue
 
         if normalizeString(item["Детали"]["Marka"]) != normalizeString(region_of_interest):
-            continue
+            if normalizeString(region_of_interest) != "all":
+                continue
 
         date_str = item['Дата']
         price = getPriceFromDB(item['Цена'])

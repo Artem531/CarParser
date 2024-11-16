@@ -32,12 +32,13 @@ def prepare_data(data, price_thresh):
         if price < price_thresh:
             continue
 
+        mark = "-"
+        if "Детали" in item and "Marka" in item["Детали"]:
+            mark = item["Детали"]["Marka"]
 
-        mark = item["Детали"]["Marka"]
         model = "-"
         if "Детали" in item and "Model" in item["Детали"]:
             model = item["Детали"]["Model"]
-
 
         marks.append(mark)
         models.append(model)
